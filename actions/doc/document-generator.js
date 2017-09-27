@@ -1,8 +1,10 @@
 const opener = require("opener");
 const ConnectionsStorage = require('../../components/connections-storage');
-const SelectorService = require('./selector-service');
+const DocumentService = require('./document-service');
+const program = require('commander');
 const { prompt } = require('inquirer');
 
+const generalStorage = require('../../components/general-storage');
 
 var storage = new ConnectionsStorage();
 
@@ -34,31 +36,21 @@ const questions = {
   ]
 }
 
-const selectRequest = () => {
-  prompt( questions.select )
+const generateDocRequest = () => {
+  const docService = new DocumentService( storage.getConnectionByAlias('source') );
+  docService.generate()
   .then(
-    answers => {
-      const selector = new SelectorService( storage.getConnectionByAlias('source') );
-      return selector.setup(
-        answers.fields.replace(' ', '').split(','),
-        answers.objectName,
-        answers.where
-      ).execute();
-    }
-  ).then(
     res => {
-      let jsonStr = JSON.stringify(res.records);
-      opener("http://localhost:9000?type=select") ;
+      generalStorage.put('classes', res);
+      opener("http://localhost:9000?type=doc") ;
+      return prompt( questions.next );
+    },
+    err => {
+      console.log(err);
       return prompt( questions.next );
     }
-  ).then(
-    answers => {
-      if ( answers.next === 'Yes' ) {
-        selectRequest();
-      } else {
-        process.exit();
-      }
-    }
+  ).catch(
+    err => console.log(err)
   )
 }
 
@@ -66,7 +58,7 @@ const selectRequest = () => {
 module.exports = ( connection ) => {
   connection(storage)
   .then(
-    res => { return selectRequest(); }
+    res => { return generateDocRequest() }
   )
   .catch(
     err => console.log(err)

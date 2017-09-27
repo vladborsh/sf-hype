@@ -23,7 +23,6 @@ module.exports = class ConnectionsStorage {
     return new Promise( ( resolve, reject ) => {
       let promises = [];
       credentials.forEach( item => {
-        console.log(item);
         promises.push( this.getNewConnnection( item.username, item.password ).connect() )
       })
       Promise.all(promises)
